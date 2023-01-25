@@ -6,10 +6,10 @@ import os
 import sys
 from urllib.parse import quote_plus, urlencode
 
+import boto3
 import requests
 
 from extract_page_title import extract_page_title
-from s3 import s3_put
 
 
 BUCKET_NAME = os.environ["SHEETKEEPER_BUCKET"]
@@ -38,18 +38,19 @@ class SheetBest:
         r.raise_for_status()
 
 
-def backup_to_s3(filename, text):
-    s3_put(endpoint_url=S3_ENDPOINT,
-           bucket=BUCKET_NAME,
-           filename=filename,
-           data=gzip.compress(text.encode()))
+def backup_to_s3(bucket, filename, text):
+    s3 = boto3.resource("s3", endpoint_url=S3_ENDPOINT, use_ssl=True)
+
+    obj = s3.Object(bucket, filename)
+    obj.put(Body=gzip.compress(text.encode()), StorageClass="ONEZONE_IA")
 
 
 def autofill_titles(sheet, url_column: str, title_column: str):
     logger.info("Fetching %s", sheet._url)
     values = sheet.get()
     logger.info("Backing up to S3")
-    backup_to_s3(filename=f"{RUN_TIMESTAMP}-{sheet._sheet}.json.gz",
+    backup_to_s3(bucket=BUCKET_NAME,
+                 filename=f"{RUN_TIMESTAMP}-{sheet._sheet}.json.gz",
                  text=json.dumps(values))
     # sys.exit()
     logger.info(f"{len(values)} rows x {len(values[0])} cols")
