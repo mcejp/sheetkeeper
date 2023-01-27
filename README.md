@@ -1,42 +1,28 @@
 ## Sheetkeeper -- automated Google Sheets maintenance
 
-### API providers
+### Creating a Google Cloud Service Account
 
-- **Chosen: [sheet.best](https://sheet.best/#pricing)**
-  - 1 connection (= limited to 1 file, but unlimited sheets), 100 reqs/mo
-  - no auth on free plan -- only URL secrecy
-  - note that just scanning 1 sheet daily will add up to 31 reqs/mo + 1 req per each row updated
+1. Go to https://console.cloud.google.com/projectcreate and create a project
+2. Go to https://console.cloud.google.com/apis/api/sheets.googleapis.com and enable _Google Sheets API_ for the newly created project
+3. On the top you should see the message _To use this API, you may need credentials. Click 'CREATE CREDENTIALS' to get started._ Click the blue button to the right.
+4. Select _Application data_, _No_, and click _Next_.
 
-- [APISpreadsheets](https://apispreadsheets.com/)
-  - 3 sheets (across unlimited files) x 1500 rows, 250 reqs/mo
-  - no auth on free plan -- only URL secrecy
-  - feels a little sketchy
-  - requires sheet to have title row to be useful
-  - update API is crap (1 row at a time? not clear)
+![screenshot](doc/credentials.png)
 
-- [SheetDB](https://sheetdb.io/pricing)
-  - 2 APIs (= limited to 2 sheets), 500 reqs/mo
-  - actually maybe limited to 2 _files_?
-  - obsessed with key-value approach
-    - requires title row
-    - skips empty rows & doesn't expose row number
-  - _useless_: PATCH endpoint doesn't accept row number, requires a key-value search, and doesn't work if the value is an URL
-
-- [Sheety](https://sheety.co/pricing)
-  - totally useless (100 rows/sheet), 200 reqs/mo
-
-- [Sheetsu](https://sheetsu.com/pricing)
-  - totally useless
-
-- Google Sheets official API
-  - free and unlimited, but needs periodic manual re-authentication (?)
+5. Choose an arbitrary _Service account ID_ (_sheetkeeper_ will do), click _Next_
+6. Click _Continue_ and _Done_
+7. Go to the _Credentials_ panel (on the left) and select the newly created Service Account
+8. Go to the _Keys_ tab (on top) and click _Add key_ -> _Create new key_
+9. Confirm the _JSON_ type and create the key. Download the file that will pop up.
+10. Base64-encode the file with the following command: `base64 -w0 <filename>.json`. This will be the contents as your `SHEETKEEPER_CREDENTIALS` variable.
 
 
 ### Configuration
 
 Environment variables:
 
-- `SHEETKEEPER_INPUTS` (format: `url1;sheet1;sheet2;sheet3;;url2;sheet1`; URLs must be [sheet.best Connection URLs](https://sheetbestdocs.netlify.app/#generating-your-rest-api))
+- `SHEETKEEPER_CREDENTIALS` base64-encoded Service Account credentials (see instructions above)
+- `SHEETKEEPER_SHEETS` (format: `id1:sheet1:sheet2:sheet3::id2:sheet1`; IDs are spreadsheet IDs, sheets are the tab names)
 
 S3 options (used for backup of sheet contents):
 
@@ -51,4 +37,7 @@ S3 options (used for backup of sheet contents):
 
 - boto3
 - bs4
+- google-api-python-client 
+- google-auth-httplib2
 - requests
+- yt-dlp
