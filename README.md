@@ -5,7 +5,7 @@
 - **Chosen: [sheet.best](https://sheet.best/#pricing)**
   - 1 connection (= limited to 1 file, but unlimited sheets), 100 reqs/mo
   - no auth on free plan -- only URL secrecy
-  - note just scanning 1 sheet will be up to 31 reqs/mo + 1 req per each row filled in
+  - note that just scanning 1 sheet daily will add up to 31 reqs/mo + 1 req per each row updated
 
 - [APISpreadsheets](https://apispreadsheets.com/)
   - 3 sheets (across unlimited files) x 1500 rows, 250 reqs/mo
@@ -20,7 +20,7 @@
   - obsessed with key-value approach
     - requires title row
     - skips empty rows & doesn't expose row number
-  - _useless_: PATCH endpoint doesn't work if value is an URL
+  - _useless_: PATCH endpoint doesn't accept row number, requires a key-value search, and doesn't work if the value is an URL
 
 - [Sheety](https://sheety.co/pricing)
   - totally useless (100 rows/sheet), 200 reqs/mo
