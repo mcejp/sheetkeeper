@@ -35,9 +35,9 @@ S3 options (used for backup of sheet contents):
 
 ### Dependencies
 
+- beautifulsoup4
 - boto3
-- bs4
-- google-api-python-client 
+- google-api-python-client
 - google-auth-httplib2
 - requests
 - yt-dlp

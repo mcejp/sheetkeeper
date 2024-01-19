@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from base64 import b64decode
-from datetime import datetime
+from datetime import datetime, timedelta
 import gzip
 import json
 import logging
@@ -58,11 +58,15 @@ def put_cell(spreadsheets, spreadsheet_id, sheet_prefix, row_number, column, val
         ).execute()
 
 
-def autofill_titles(spreadsheets, spreadsheet_id: str, sheet_prefix: str, url_column: str, note_column: str):
+def autofill_titles(spreadsheets, spreadsheet_id: str, sheet_prefix: str, url_column: str, duration_column: str, date_column: str, note_column: str):
     assert len(url_column) == 1
     assert len(note_column) == 1
+    assert len(duration_column) == 1
+    assert len(date_column) == 1
 
-    assert ord(note_column) == ord(url_column) + 1
+    assert ord(duration_column) == ord(url_column) + 1
+    assert ord(date_column) == ord(duration_column) + 1
+    assert ord(note_column) == ord(date_column) + 1
 
     logging.info("Fetch sheet %s -> %s", spreadsheet_id, sheet_prefix)
     result = spreadsheets.values().get(spreadsheetId=spreadsheet_id, range=sheet_prefix + url_column + ":" + note_column).execute()
@@ -78,23 +82,33 @@ def autofill_titles(spreadsheets, spreadsheet_id: str, sheet_prefix: str, url_co
         if len(row) >= 1:
             url = row[0]
 
-            if url and (url.startswith("http://") or url.startswith("https://")) and (len(row) < 2 or not row[1].strip()):
-                logger.info(f"{url_column}{1 + row_number}: no comment for URL {url}; fetching")
+            have_duration = len(row) >= 2 and row[1].strip()
+            have_date = len(row) >= 3 and row[2].strip()
+            have_title = len(row) >= 4 and row[3].strip()
+
+            if url and (url.startswith("http://") or url.startswith("https://")) and (not have_title or not have_duration or not have_date):
+                logger.info(f"{url_column}{1 + row_number}: incomplete entry for URL {url}; fetching")
 
                 try:
                     title = None
+                    duration = None
+                    date = None
 
                     metadata = ytdl.try_get_metadata(url)
                     if metadata is not None:
                         logger.info(f"    => {metadata}")
 
                         title = metadata.title
+                        if metadata.duration is not None:
+                            duration = timedelta(seconds=metadata.duration)
+                        if metadata.upload_date is not None:
+                            date = datetime.strptime(metadata.upload_date, '%Y%m%d')
 
                     if title is None:
                         title = extract_page_title(url)
                         logger.info(f"    => {title}")
 
-                    if title is not None:
+                    if not have_title and title is not None:
                         title = title.removesuffix(" - YouTube")
 
                         # save it
@@ -104,6 +118,24 @@ def autofill_titles(spreadsheets, spreadsheet_id: str, sheet_prefix: str, url_co
                                  row_number,
                                  note_column,
                                  title)
+
+                    if not have_duration and duration is not None:
+                        # save it
+                        put_cell(spreadsheets,
+                                 spreadsheet_id,
+                                 sheet_prefix,
+                                 row_number,
+                                 duration_column,
+                                 str(duration))
+
+                    if not have_date and date is not None:
+                        # save it
+                        put_cell(spreadsheets,
+                                 spreadsheet_id,
+                                 sheet_prefix,
+                                 row_number,
+                                 date_column,
+                                 date.strftime("%Y-%m-%d"))
                 except requests.exceptions.ConnectionError as e:
                     logger.exception("Failed to fetch video title")
 
@@ -118,7 +150,7 @@ def main():
         id_, *sheets = id_and_sheets.split(":")
 
         for sheet in sheets:
-            autofill_titles(spreadsheets, id_, sheet + "!", "A", "B")
+            autofill_titles(spreadsheets, id_, sheet + "!", url_column="A", duration_column="B", date_column="C", note_column="D")
 
 
 def handle(event, context):
