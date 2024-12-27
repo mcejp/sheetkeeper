@@ -94,7 +94,12 @@ def autofill_titles(spreadsheets, spreadsheet_id: str, sheet_prefix: str, url_co
                     duration = None
                     date = None
 
-                    metadata = ytdl.try_get_metadata(url)
+                    if url.startswith("https://archive.org/"):
+                        # work around yt-dlp bug
+                        metadata = None
+                    else:
+                        metadata = ytdl.try_get_metadata(url)
+
                     if metadata is not None:
                         logger.info(f"    => {metadata}")
 
