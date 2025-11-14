@@ -1,3 +1,4 @@
 /package/
 __pycache__
 sheetkeeper-deploy.zip
+/uv.lock
